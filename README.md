@@ -206,7 +206,6 @@ cd backend
 
 ```bash
 cd vben-admin
-npm i -g corepack
 pnpm install
 ```
 
