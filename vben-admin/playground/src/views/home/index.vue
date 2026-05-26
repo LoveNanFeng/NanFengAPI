@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { EchartsUIType } from '@vben/plugins/echarts';
+
 import type { HomeApi } from '#/api/home';
 
 import {
@@ -13,7 +14,7 @@ import {
 import { RouterLink } from 'vue-router';
 
 import { IconifyIcon } from '@vben/icons';
-import { EchartsUI, echarts, useEcharts } from '@vben/plugins/echarts';
+import { echarts, EchartsUI, useEcharts } from '@vben/plugins/echarts';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
 import { getHomeOverview } from '#/api/home';
@@ -41,6 +42,43 @@ interface ApiDisplayCard extends HomeApi.HotApiItem {
   tags: string[];
 }
 
+interface ChinaFeature {
+  properties?: {
+    adcode?: number | string;
+    center?: [number, number];
+    name?: string;
+  };
+}
+
+interface ChinaProvinceFeature {
+  properties: {
+    adcode?: number | string;
+    center: [number, number];
+    name: string;
+  };
+}
+
+interface ChinaProvinceFeatureWithCode extends ChinaProvinceFeature {
+  properties: ChinaProvinceFeature['properties'] & {
+    adcode: number | string;
+  };
+}
+
+const defaultSiteConfig: HomeApi.SiteConfig = {
+  contactAddress: '',
+  contactEmail: '',
+  contactPhone: '',
+  contactQq: '',
+  contactWechat: '',
+  copyright: '© 2026 NanFengAPI. All rights reserved.',
+  description: '统一管理接口、Key、套餐、计费与调用日志。',
+  icp: '',
+  logoUrl: '',
+  siteName: 'NanFengAPI',
+  slogan: '稳定、清晰、可运营的 API 服务平台',
+  updateTime: null,
+};
+
 const emptyOverview: HomeApi.Overview = {
   callTrend7d: [],
   homeNotice: {
@@ -51,20 +89,7 @@ const emptyOverview: HomeApi.Overview = {
   },
   hotApis: [],
   regionRanking: [],
-  siteConfig: {
-    contactAddress: '',
-    contactEmail: '',
-    contactPhone: '',
-    contactQq: '',
-    contactWechat: '',
-    copyright: '© 2026 NanFengAPI. All rights reserved.',
-    description: '统一管理接口、Key、套餐、计费与调用日志。',
-    icp: '',
-    logoUrl: '',
-    siteName: 'NanFengAPI',
-    slogan: '稳定、清晰、可运营的 API 服务平台',
-    updateTime: null,
-  },
+  siteConfig: defaultSiteConfig,
   stats: {
     activeRegions24h: 0,
     activeRegions24hDelta: 0,
@@ -86,37 +111,44 @@ const API_MARKET_PATH = '/apilist';
 const CONSOLE_FALLBACK_PATH = '/workspace';
 const REGISTER_PATH = '/auth/register';
 
-const chinaFeatures = (chinaGeoJson as any).features as Array<{
-  properties?: {
-    adcode?: number | string;
-    center?: [number, number];
-    name?: string;
-  };
-}>;
-const chinaProvinceFeatures = chinaFeatures.filter(
-  (item) => item.properties?.name && item.properties?.adcode !== '100000_JD',
-);
+const chinaFeatures = (chinaGeoJson as { features: ChinaFeature[] }).features;
+const chinaProvinceFeatures = chinaFeatures.filter(isChinaProvinceFeature);
 const provinceCenterByName = new Map(
-  chinaProvinceFeatures
-    .filter((item) => item.properties?.name && item.properties.center)
-    .map((item) => [item.properties!.name!, item.properties!.center!]),
+  chinaProvinceFeatures.map((item) => [
+    item.properties.name,
+    item.properties.center,
+  ]),
 );
 const provinceFeatureByCode = new Map(
-  chinaProvinceFeatures
-    .filter(
-      (item) =>
-        item.properties?.adcode &&
-        item.properties?.name &&
-        item.properties.center,
-    )
-    .map((item) => [
-      String(item.properties!.adcode),
-      {
-        center: item.properties!.center!,
-        name: item.properties!.name!,
-      },
-    ]),
+  chinaProvinceFeatures.filter(hasProvinceCode).map((item) => [
+    String(item.properties.adcode),
+    {
+      center: item.properties.center,
+      name: item.properties.name,
+    },
+  ]),
 );
+
+function isChinaProvinceFeature(
+  item: ChinaFeature,
+): item is ChinaProvinceFeature {
+  const properties = item.properties;
+  return Boolean(
+    properties?.name &&
+    properties.center &&
+    String(properties.adcode || '') !== '100000_JD',
+  );
+}
+
+function hasProvinceCode(
+  item: ChinaProvinceFeature,
+): item is ChinaProvinceFeatureWithCode {
+  return (
+    item.properties.adcode !== undefined &&
+    item.properties.adcode !== null &&
+    String(item.properties.adcode).trim() !== ''
+  );
+}
 
 echarts.registerMap(CHINA_MAP_NAME, chinaGeoJson as any);
 
@@ -204,7 +236,7 @@ const homeNotice = computed(
     },
 );
 const siteConfig = computed<HomeApi.SiteConfig>(
-  () => overview.value.siteConfig ?? emptyOverview.siteConfig!,
+  () => overview.value.siteConfig ?? defaultSiteConfig,
 );
 const siteName = computed(
   () =>
@@ -465,13 +497,14 @@ function updateTrendPanelSink() {
 }
 
 function apiTags(item: HomeApi.HotApiItem) {
-  const tags: string[] = [];
-  if (item.requestMethod) {
-    tags.push(String(item.requestMethod).replace('_', '/'));
-  }
-  tags.push(`${formatNumber(item.callCount)} 次调用`);
-  tags.push(formatApiPrice(item));
-  return tags.slice(0, 3);
+  const methodTag = item.requestMethod
+    ? String(item.requestMethod).replace('_', '/')
+    : '';
+  const baseTags = [
+    `${formatNumber(item.callCount)} 次调用`,
+    formatApiPrice(item),
+  ];
+  return methodTag ? [methodTag, ...baseTags] : baseTags;
 }
 
 function formatApiPrice(item: HomeApi.HotApiItem) {
@@ -635,7 +668,7 @@ async function renderRegionMap() {
   const theme = activeTheme.value;
   const maxValue = Math.max(1, knownRegionMax.value);
   const heatColors = theme.mapColors;
-  const geoRegions = Array.from(regionByMapName.value.entries()).map(
+  const geoRegions = [...regionByMapName.value.entries()].map(
     ([name, region]) => {
       const ratio = Math.min(1, Number(region.value || 0) / maxValue);
       const colorIndex = Math.min(
@@ -976,9 +1009,9 @@ function compactNumber(value: number | string | undefined) {
           <RouterLink class="primary-button" :to="primaryActionPath">
             {{ primaryActionLabel }}
           </RouterLink>
-          <RouterLink class="secondary-button" :to="apiMarketPath"
-            >查看接口市场</RouterLink
-          >
+          <RouterLink class="secondary-button" :to="apiMarketPath">
+            查看接口市场
+          </RouterLink>
         </div>
 
         <section ref="hotStripRef" class="hot-strip">
@@ -1142,9 +1175,9 @@ function compactNumber(value: number | string | undefined) {
         <h2>准备好了就开始</h2>
         <p>从接口市场选择接口，进入详情调试，创建 Key 后复制示例接入。</p>
       </div>
-      <RouterLink :to="primaryActionPath">{{
-        quickStartActionLabel
-      }}</RouterLink>
+      <RouterLink :to="primaryActionPath">
+        {{ quickStartActionLabel }}
+      </RouterLink>
     </section>
 
     <PublicSiteFooter :site-config="siteConfig" />
