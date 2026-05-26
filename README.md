@@ -19,6 +19,15 @@
   <a href="https://api.nfiii.com" target="_blank"><img src="https://img.shields.io/badge/Demo-api.nfiii.com-blue" alt="Demo" /></a>
 </p>
 
+## 📂 相关仓库
+
+> 本仓库仅提供部署教程，不包含源代码，代码更新后续更新会在以下两个仓库进行更新。完整前后端代码请访问以下仓库：
+
+| 仓库                          | 地址 |
+|-----------------------------|------|
+| **前端** (Vue 3 + Vben Admin) | [LoveNanFeng/NanFengApiFront](https://github.com/LoveNanFeng/NanFengApiFront)|
+| **后端** (Spring Boot + Java) | [LoveNanFeng/NanFengApiBack](https://github.com/LoveNanFeng/NanFengApiBack) |
+
 ---
 
 ## 📖 项目简介
@@ -27,9 +36,10 @@
 
 > 统一管理接口、Key、套餐、计费与调用日志，帮助您快速搭建可运营的 API 服务平台。
 
-🔗 **演示地址**：[https://api.nfiii.com](https://api.nfiii.com)\
-🐧 **作者QQ**：[26536113](26536113)\
-🐧 **交流群**：[1070597939](1070597939)
+> **演示地址**：[https://api.nfiii.com](https://api.nfiii.com)\
+**作者QQ**：[26536113](26536113)\
+**交流群**：[1070597939](1070597939)
+
 ---
 
 ## ✨ 核心功能
