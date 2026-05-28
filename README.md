@@ -204,7 +204,20 @@ export REDIS_PASSWORD=
 export JWT_SECRET=your_jwt_secret_key
 ```
 
-### 4. 启动后端
+### 4. 构建后端
+
+```bash
+cd backend
+./mvnw package -DskipTests
+```
+
+构建完成后，JAR 包位于 `backend/target/` 目录，使用以下命令运行：
+
+```bash
+java -jar target/nanfeng-api-billing-*.jar
+```
+
+### 5. 启动后端（开发模式）
 
 ```bash
 cd backend
@@ -213,7 +226,7 @@ cd backend
 
 后端启动后运行在 `http://localhost:8080/api`
 
-### 5. 配置前端
+### 6. 配置前端
 
 ```bash
 cd vben-admin
@@ -226,13 +239,13 @@ pnpm install
 VITE_GLOB_API_URL=http://localhost:8080/api
 ```
 
-### 6. 启动前端
+### 7. 启动前端
 
 ```bash
 pnpm dev:play
 ```
 
-### 7. 构建前端
+### 8. 构建前端
 
 ```bash
 pnpm --filter @vben/playground build
