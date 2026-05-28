@@ -208,7 +208,7 @@ export JWT_SECRET=your_jwt_secret_key
 
 ```bash
 cd backend
-./mvnw package -DskipTests
+mvn clean package
 ```
 
 构建完成后，JAR 包位于 `backend/target/` 目录，使用以下命令运行：
